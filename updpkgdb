@@ -1,0 +1,55 @@
+#!/usr/bin/bash
+
+set -e
+
+# GREEN='\033[1;92m'
+# RESETCOLOR='\033[1;00m'
+#
+# [ ! -n "$(tty|grep -v 'not a'|grep -Eo 'tty|pts')" ] && \
+#     NOT_TERM=1
+#
+# upload_msg() {
+#     echo -e "${GREEN}[ UPLOAD ]: $@ $RESETCOLOR"
+#     if [[ "$NOT_TERM" == 1 && "$DONT_NOTIFY" != 1 ]]
+#         then notify-send -a '[ UPLOAD ]' "$@" 2>/dev/null &
+#     fi
+# }
+
+repo=runimage
+for arch in any x86_64
+    do
+        if [ -d "$arch" ]
+            then
+                unset newpkg
+                (cd "$arch"
+                rm -f "$repo.db" "$repo.files"
+                repo-add "$repo.db.tar.gz" *.tar.zst
+                for repodb in $repo.db $repo.files
+                    do
+                        if [ -L "$repodb" ]
+                            then
+                                rm -f "$repodb"
+                                mv "$repodb.tar.gz" "$repodb"
+                        fi
+                done)
+                newpkg=($(find $arch -mmin -5 -type f -print))
+                if [ -n "$newpkg" ]
+                    then
+                        for pkg in "${newpkg[@]}"; do upload_msg "$pkg"; done
+                        gh release upload $arch "${newpkg[@]}" --clobber
+#                         rsync -cauvzP --delete -e 'sshpass -p xxxxxx ssh -p 11111 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' "$arch" user@11.11.11.11:/srv/repo
+                fi
+        fi
+done
+
+# git checkout --orphan latest_branch
+# git add -A
+# git commit -am "Update repo"
+# git branch -D main
+# git branch -m main
+# git push -f origin main
+# rm -rf .git/refs/original/
+# git reflog expire --expire=now --all
+# git gc --prune=now
+# git gc --aggressive --prune=now
+# git lfs prune
