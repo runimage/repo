@@ -32,7 +32,7 @@ for arch in any x86_64
                                 mv "$repodb.tar.gz" "$repodb"
                         fi
                 done)
-                newpkg=($(find $arch -mmin -5 -type f -print))
+                newpkg=($(find $arch/ -mmin -5 -type f -print))
                 if [ -n "$newpkg" ]
                     then
                         for pkg in "${newpkg[@]}"; do upload_msg "$pkg"; done
