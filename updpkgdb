@@ -30,7 +30,7 @@ for arch in any x86_64
         if [ -d "$arch" ]
             then
                 (cd "$arch"
-                rm -f "$repo.db" "$repo.files"
+                rm -f "$repo".{db,files}
                 repo-add "$repo.db.tar.gz" *.tar.zst
                 for repodb in $repo.db $repo.files
                     do
@@ -54,6 +54,6 @@ for arch in any x86_64
                                 gh release upload "$arch" "$arch/$asset" --clobber
                         fi
                 done
-                gh release upload "$arch" "$arch"/runimage.{db,files} --clobber
+                gh release upload "$arch" "$arch/$repo".{db,files} --clobber
         fi
 done
