@@ -54,5 +54,6 @@ for arch in any x86_64
                                 gh release upload "$arch" "$arch/$asset" --clobber
                         fi
                 done
+                gh release upload "$arch" "$arch"/runimage.{db,files} --clobber
         fi
 done
