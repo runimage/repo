@@ -1,7 +1,9 @@
 #!/usr/bin/bash
-
 set -e
 
+# export GH_TOKEN=
+
+RED='\033[1;91m'
 GREEN='\033[1;92m'
 RESETCOLOR='\033[1;00m'
 
@@ -15,12 +17,18 @@ upload_msg() {
     fi
 }
 
+delete_msg() {
+    echo -e "${RED}[ DELETE ]: $@ $RESETCOLOR"
+    if [[ "$NOT_TERM" == 1 && "$DONT_NOTIFY" != 1 ]]
+        then notify-send -a '[ DELETE ]' "$@" 2>/dev/null &
+    fi
+}
+
 repo=runimage
 for arch in any x86_64
     do
         if [ -d "$arch" ]
             then
-                unset newpkg
                 (cd "$arch"
                 rm -f "$repo.db" "$repo.files"
                 repo-add "$repo.db.tar.gz" *.tar.zst
@@ -32,11 +40,19 @@ for arch in any x86_64
                                 mv "$repodb.tar.gz" "$repodb"
                         fi
                 done)
-                newpkg=($(find $arch/ -mmin -5 -type f -print))
-                if [ -n "$newpkg" ]
-                    then
-                        for pkg in "${newpkg[@]}"; do upload_msg "$pkg"; done
-                        gh release upload $arch "${newpkg[@]}" --clobber
-                fi
+                remote_repo_assets="$(gh release view 2>/dev/null|grep asset|awk '{print$2}')"
+                local_repo_assets="$(ls -A1 "$arch" 2>/dev/null)"
+                diff_assets=($(echo -e "${remote_repo_assets}\n${local_repo_assets}"|sort|uniq -u))
+                for asset in "${diff_assets[@]}"
+                    do
+                        if grep -q "^${asset}$"<<<"${remote_repo_assets}"
+                            then
+                                delete_msg "$asset"
+                                gh release delete-asset "$arch" "$asset" --yes
+                            else
+                                upload_msg "$asset"
+                                gh release upload "$arch" "$arch/$asset" --clobber
+                        fi
+                done
         fi
 done
